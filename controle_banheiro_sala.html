@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Banheiro da Sala</title>
+<style>
+body{font-family:Arial, sans-serif;background:#f5f5f5;margin:0;padding:20px}
+h1{text-align:center}
+.container{max-width:900px;margin:auto;background:white;padding:20px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+input,button{padding:10px;margin:5px;font-size:16px}
+button{cursor:pointer}
+button.primary{background:#2563eb;color:white;border:none;border-radius:6px}
+button.danger{background:#16a34a;color:white;border:none;border-radius:6px}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center}
+th{background:#eee}
+.status{margin-top:10px;font-weight:bold}
+.timer{font-size:18px;margin-top:5px}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Controle de Banheiro</h1>
+
+<h2>Registrar ida</h2>
+<input type="text" id="nome" placeholder="Nome do aluno">
+<button class="primary" onclick="entrarBanheiro()">Registrar saída</button>
+
+<h2>Aluno no banheiro</h2>
+<p class="status" id="alunoAtual">Nenhum aluno no banheiro</p>
+<p class="timer" id="tempoAtual"></p>
+<button class="danger" id="btnVoltou" onclick="voltarBanheiro()" style="display:none">Aluno voltou</button>
+
+<h2>Histórico</h2>
+<table>
+<thead>
+<tr>
+<th>Aluno</th>
+<th>Hora de saída</th>
+<th>Hora de volta</th>
+<th>Tempo (min)</th>
+</tr>
+</thead>
+<tbody id="historico"></tbody>
+</table>
+</div>
+
+<script>
+let atual = null;
+let inicio = null;
+let timerInterval = null;
+
+function carregarHistorico(){
+ const dados = JSON.parse(localStorage.getItem('historicoBanheiro') || '[]');
+ const tabela = document.getElementById('historico');
+ tabela.innerHTML = '';
+ dados.forEach(item => {
+  const linha = `<tr>
+  <td>${item.nome}</td>
+  <td>${item.saida}</td>
+  <td>${item.volta}</td>
+  <td>${item.tempo}</td>
+  </tr>`;
+  tabela.innerHTML += linha;
+ });
+}
+
+function salvarHistorico(registro){
+ const dados = JSON.parse(localStorage.getItem('historicoBanheiro') || '[]');
+ dados.push(registro);
+ localStorage.setItem('historicoBanheiro', JSON.stringify(dados));
+}
+
+function entrarBanheiro(){
+ const nome = document.getElementById('nome').value.trim();
+ if(!nome){alert('Digite o nome do aluno');return}
+ if(atual){alert('Já existe um aluno no banheiro');return}
+
+ atual = nome;
+ inicio = new Date();
+
+ document.getElementById('alunoAtual').innerText = 'No banheiro: ' + nome;
+ document.getElementById('btnVoltou').style.display = 'inline-block';
+ document.getElementById('nome').value='';
+
+ timerInterval = setInterval(atualizarTempo,1000);
+}
+
+function atualizarTempo(){
+ if(!inicio) return;
+ const agora = new Date();
+ const diff = Math.floor((agora - inicio)/1000);
+ const min = Math.floor(diff/60);
+ const seg = diff % 60;
+ document.getElementById('tempoAtual').innerText = `Tempo fora: ${min}m ${seg}s`;
+}
+
+function voltarBanheiro(){
+ if(!atual) return;
+
+ const fim = new Date();
+ const tempoMin = Math.round((fim - inicio)/60000);
+
+ const registro = {
+  nome: atual,
+  saida: inicio.toLocaleTimeString(),
+  volta: fim.toLocaleTimeString(),
+  tempo: tempoMin
+ };
+
+ salvarHistorico(registro);
+ carregarHistorico();
+
+ clearInterval(timerInterval);
+
+ atual = null;
+ inicio = null;
+ document.getElementById('alunoAtual').innerText = 'Nenhum aluno no banheiro';
+ document.getElementById('tempoAtual').innerText = '';
+ document.getElementById('btnVoltou').style.display = 'none';
+}
+
+carregarHistorico();
+</script>
+</body>
+</html>
